@@ -9,12 +9,10 @@
 ![Preview](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/docs/hide-on-scroll-showcase.gif?raw=true)
 
 ## Getting Started
-
 Add the dependency at pubspec.yaml:
 
 ```yaml
 dependencies:
-  ...
   dot_curved_bottom_nav: ^0.0.1
 ```
 
