@@ -66,6 +66,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: <Widget>[
                     Text(
                       'Taped On Index $_currentPage',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -73,7 +77,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
       bottomNavigationBar: DotCurvedBottomNav(
         scrollController: _scrollController,
-        hideOnScroll: false,
+
+        hideOnScroll: true,
         indicatorColor: Colors.blue,
         backgroundColor: Colors.black,
         animationDuration: const Duration(milliseconds: 300),
