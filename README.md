@@ -1,6 +1,6 @@
 # Stunning Curved Bottom Navigation
 
-![Title Image](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/Curved%20Dot%20Bottom%20Nav.png)
+[![Title Image](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/Curved%20Dot%20Bottom%20Nav.png)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
 
 ## Preview
 [![Preview](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/showcase.gif)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
