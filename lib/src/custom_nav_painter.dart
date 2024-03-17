@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 
 class NavCustomPainter extends CustomPainter {
-  late double loc;
   Color color;
+  late double loc;
   TextDirection textDirection;
+  final double indicatorSize;
 
-  final double _circleRadius = 5;
+  final Color indicatorColor;
+  double borderRadius;
 
-  NavCustomPainter(
-    double startingLoc,
-    int itemsLength,
-    this.color,
-    this.textDirection,
-  ) {
+  NavCustomPainter({
+    required double startingLoc,
+    required int itemsLength,
+    required this.color,
+    required this.textDirection,
+    this.indicatorColor = Colors.lightBlue,
+    this.indicatorSize = 5,
+    this.borderRadius = 25,
+  }) {
     loc = 1.0 / itemsLength * (startingLoc + 0.48);
   }
 
@@ -23,16 +28,15 @@ class NavCustomPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final circlePaint = Paint()
-      ..color = Colors.red
+      ..color = indicatorColor
       ..style = PaintingStyle.fill;
 
     final height = size.height;
     final width = size.width;
-    const double borderRadius = 25;
 
     const s = 0.06;
     const depth = 0.24;
-    final valleyWith = _circleRadius + 5;
+    final valleyWith = indicatorSize + 5;
 
     final path = Path()
       // top Left Corner
@@ -72,7 +76,7 @@ class NavCustomPainter extends CustomPainter {
     canvas.drawPath(path, paint);
 
     canvas.drawCircle(
-        Offset(loc * width, _circleRadius), _circleRadius, circlePaint);
+        Offset(loc * width, indicatorSize), indicatorSize, circlePaint);
   }
 
   @override
