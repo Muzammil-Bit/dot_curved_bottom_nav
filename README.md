@@ -3,7 +3,7 @@
 ![Title Image](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/Curved%20Dot%20Bottom%20Nav.png)
 
 ## Preview
-![Preview](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/showcase.gif)
+[![Preview](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/showcase.gif)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
 
 ## Optional Hide On Scroll
 ![Preview](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/docs/hide-on-scroll-showcase.gif?raw=true)
