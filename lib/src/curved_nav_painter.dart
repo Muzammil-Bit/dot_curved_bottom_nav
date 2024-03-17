@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class NavCustomPainter extends CustomPainter {
+class CurvedNavPainter extends CustomPainter {
   Color color;
   late double loc;
   TextDirection textDirection;
@@ -9,7 +9,7 @@ class NavCustomPainter extends CustomPainter {
   final Color indicatorColor;
   double borderRadius;
 
-  NavCustomPainter({
+  CurvedNavPainter({
     required double startingLoc,
     required int itemsLength,
     required this.color,

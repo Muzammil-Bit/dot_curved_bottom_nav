@@ -71,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-      bottomNavigationBar: CustomBottomNav(
+      bottomNavigationBar: DotCurvedBottomNav(
         scrollController: _scrollController,
         hideOnScroll: false,
         indicatorColor: Colors.blue,
@@ -79,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
         animationDuration: const Duration(milliseconds: 300),
         animationCurve: Curves.ease,
         // margin: const EdgeInsets.all(0),
-        index: _currentPage,
+        selectedIndex: _currentPage,
         indicatorSize: 5,
         borderRadius: 25,
         height: 70,

@@ -1,1 +1,1 @@
-export './src/bottom_nav.dart';
+export 'src/dot_curved_bottom_nav.dart';
