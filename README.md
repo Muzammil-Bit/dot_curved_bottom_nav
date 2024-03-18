@@ -77,8 +77,7 @@ bottomNavigationBar: DotCurvedBottomNav(
 ## Contributions
 Feel free to create an issue if you find a bug or if you need new features. Of course PRs are welcome!
 
-<br>
-If you want to contact with me on LinkedIn: [Muzammil Hussain](https://www.linkedin.com/in/muzammil-developer/ "Muzammil Hussain")
+If you want to connect with me on LinkedIn: [Muzammil Hussain](https://www.linkedin.com/in/muzammil-developer/ "Muzammil Hussain")
 
 <br>
 If you like this work, please consider 👍 the package and ⭐ the repo. It is appreciated.
