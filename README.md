@@ -1,12 +1,12 @@
 # Stunning Curved Bottom Navigation
 
-[![Title Image](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/Curved%20Dot%20Bottom%20Nav.png)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
+[![Title Image](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/doc/Curved%20Dot%20Bottom%20Nav.png?raw=true)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
 
 ## Preview
-[![Preview](https://raw.githubusercontent.com/Muzammil-Bit/dot_curved_bottom_nav/master/docs/showcase.gif)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
+[![Preview](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/doc/showcase.gif?raw=true)](https://pub.dev/packages/dot_curved_bottom_nav "dot_curved_bottom_nav")
 
 ## Optional Hide On Scroll
-![Preview](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/docs/hide-on-scroll-showcase.gif?raw=true)
+![Preview](https://github.com/Muzammil-Bit/dot_curved_bottom_nav/blob/master/doc/hide-on-scroll-showcase.gif?raw=true)
 
 ## Getting Started
 Add the dependency at pubspec.yaml:
