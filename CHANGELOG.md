@@ -5,3 +5,6 @@
 
 ## 0.0.1+2
 * Specified platforms
+
+## 0.0.2
+* Updated doc images and readme
