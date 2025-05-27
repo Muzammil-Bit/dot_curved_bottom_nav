@@ -18,7 +18,11 @@ class CurvedNavPainter extends CustomPainter {
     this.indicatorSize = 5,
     this.borderRadius = 25,
   }) {
-    loc = 1.0 / itemsLength * (startingLoc + 0.48);
+    if (textDirection == TextDirection.rtl) {
+      loc = 1.0 - (1.0 / itemsLength * (startingLoc + 0.48));
+    } else {
+      loc = 1.0 / itemsLength * (startingLoc + 0.48);
+    }
   }
 
   @override
