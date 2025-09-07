@@ -5,7 +5,6 @@ class CurvedNavPainter extends CustomPainter {
   late double loc;
   TextDirection textDirection;
   final double indicatorSize;
-
   final Color indicatorColor;
   double borderRadius;
 
@@ -18,7 +17,15 @@ class CurvedNavPainter extends CustomPainter {
     this.indicatorSize = 5,
     this.borderRadius = 25,
   }) {
-    loc = 1.0 / itemsLength * (startingLoc + 0.48);
+    // Calculate base location
+    double baseLoc = 1.0 / itemsLength * (startingLoc + 0.48);
+    
+    // Adjust for RTL direction
+    if (textDirection == TextDirection.rtl) {
+      loc = 1.0 - baseLoc;
+    } else {
+      loc = baseLoc;
+    }
   }
 
   @override
@@ -38,25 +45,28 @@ class CurvedNavPainter extends CustomPainter {
     const depth = 0.24;
     final valleyWith = indicatorSize + 5;
 
+    // Calculate the center of the curved area
+    final curveCenter = loc * width;
+
     final path = Path()
       // top Left Corner
       ..moveTo(0, borderRadius)
       ..quadraticBezierTo(0, 0, borderRadius, 0)
-      ..lineTo(loc * width - valleyWith * 2, 0)
+      ..lineTo(curveCenter - valleyWith * 2, 0)
       ..cubicTo(
-        (loc + s * 0.20) * size.width - valleyWith,
+        curveCenter - valleyWith + s * 0.20 * size.width,
         size.height * 0.05,
-        loc * size.width - valleyWith,
+        curveCenter - valleyWith,
         size.height * depth,
-        (loc + s * 0.50) * size.width - valleyWith,
+        curveCenter - valleyWith + s * 0.50 * size.width,
         size.height * depth,
       )
       ..cubicTo(
-        (loc + s * 0.20) * size.width + valleyWith,
+        curveCenter + valleyWith - s * 0.20 * size.width,
         size.height * depth,
-        loc * size.width + valleyWith,
+        curveCenter + valleyWith,
         0,
-        (loc + s * 0.60) * size.width + valleyWith,
+        curveCenter + valleyWith + s * 0.60 * size.width,
         0,
       )
 
@@ -75,8 +85,9 @@ class CurvedNavPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
+    // Draw the dot at the exact center of the curved area
     canvas.drawCircle(
-        Offset(loc * width, indicatorSize), indicatorSize, circlePaint);
+        Offset(curveCenter, indicatorSize), indicatorSize, circlePaint);
   }
 
   @override
