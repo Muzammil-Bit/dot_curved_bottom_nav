@@ -61,41 +61,44 @@ class CurvedNavPainter extends CustomPainter {
     // The notch is sized from the dot so they always fit together, and kept
     // shallow enough to leave room for the icons below it.
     final halfWidth = indicatorSize * 2 + 12;
+    final minHalfWidth = indicatorSize + 6;
     final depth = math.min(
       math.max(height * 0.24, indicatorSize * 2 + 4),
       height / 2,
     );
-
-    // On a very narrow bar the notch can't be centered on the dot without
-    // running off the end, so keep it inside the bar.
-    final notchX = width <= halfWidth * 2
-        ? width / 2
-        : dotX.clamp(halfWidth, width - halfWidth);
-    final notchStart = notchX - halfWidth;
-    final notchEnd = notchX + halfWidth;
-
-    // Corners can't be rounder than half the height. The top corners also
-    // shrink as the notch gets close, so the two never overlap.
     final radius = math.min(borderRadius, height / 2);
-    final topLeft = math.min(radius, notchStart);
-    final topRight = math.min(radius, width - notchEnd);
+
+    // Center the notch on the dot. Next to a corner, narrow that side of the
+    // notch so it starts where the corner's curve ends. That keeps the
+    // corner's radius and joins the two smoothly instead of overlapping them.
+    final notchX = width <= minHalfWidth * 2
+        ? width / 2
+        : dotX.clamp(minHalfWidth, width - minHalfWidth);
+    final leftHalf = (notchX - radius).clamp(minHalfWidth, halfWidth);
+    final rightHalf = (width - radius - notchX).clamp(minHalfWidth, halfWidth);
+    final notchStart = notchX - leftHalf;
+    final notchEnd = notchX + rightHalf;
+
+    // Only when the bar is too narrow for both does a corner give way.
+    final topLeft = notchStart.clamp(0.0, radius);
+    final topRight = (width - notchEnd).clamp(0.0, radius);
 
     return Path()
       ..moveTo(0, topLeft)
       ..quadraticBezierTo(0, 0, topLeft, 0)
       ..lineTo(notchStart, 0)
       ..cubicTo(
-        notchX - halfWidth * 0.5,
+        notchX - leftHalf * 0.5,
         0,
-        notchX - halfWidth * 0.4,
+        notchX - leftHalf * 0.4,
         depth,
         notchX,
         depth,
       )
       ..cubicTo(
-        notchX + halfWidth * 0.4,
+        notchX + rightHalf * 0.4,
         depth,
-        notchX + halfWidth * 0.5,
+        notchX + rightHalf * 0.5,
         0,
         notchEnd,
         0,
