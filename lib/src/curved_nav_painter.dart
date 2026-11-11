@@ -20,42 +20,65 @@ class NavGeometry {
   final double borderRadius;
   final double indicatorSize;
 
+  /// The narrowest an item may be, so icons don't overlap and every item
+  /// keeps a usable tap area.
+  static const double minItemWidth = 40;
+
   /// How deep the notch dips: deep enough to hold the dot with a gap below
   /// it, and never more than half the bar.
   double get notchDepth =>
       math.min(math.max(height * 0.24, indicatorSize * 2 + 4), height / 2);
 
-  /// Half the width of the notch. Sized from the dot so they fit together.
-  double get notchHalfWidth => math.min(indicatorSize * 2 + 12, width / 2);
+  /// Half the width of the notch. Sized from the dot so they fit together,
+  /// and never narrowed, so its sides always clear the dot.
+  double get notchHalfWidth => indicatorSize * 2 + 12;
+
+  /// The narrowest bar that fits every item at [minItemWidth] or more, with
+  /// the notch around the first and last item inside the bar.
+  double get minWidth => math.max(itemCount * minItemWidth,
+      (itemCount - 1) * minItemWidth + 2 * notchHalfWidth);
+
+  /// Whether the bar is at least [minWidth] wide.
+  bool get fits => width >= minWidth;
+
+  /// The furthest from the bar's end the first item's center can be while
+  /// every item stays at least [minItemWidth] wide.
+  double get _maxFirstCenter {
+    if (itemCount == 1) return width / 2;
+    final evenly = width / (2 * itemCount);
+    final squeezed = (width - (itemCount - 1) * minItemWidth) / 2;
+    return math.max(evenly, squeezed);
+  }
 
   /// The radius of all four corners.
   ///
   /// The notch around the first and last item has to fit between the
-  /// corners, so on a bar too narrow for both the corners get smaller. They
-  /// all shrink together so the bar stays symmetric.
-  double get cornerRadius => math.max(
-        0,
-        math.min(
-          math.min(borderRadius, height / 2),
-          width / 2 - notchHalfWidth,
-        ),
-      );
+  /// corners. When the items can't move in far enough for that, the corners
+  /// get smaller instead. They all shrink together so the bar stays
+  /// symmetric.
+  double get cornerRadius {
+    final wanted = math.min(borderRadius, height / 2);
+    final room = _maxFirstCenter - notchHalfWidth;
+    return room.clamp(0.0, wanted);
+  }
 
   /// Space kept free at each end before the first and after the last item.
   ///
   /// Items are spread evenly, so with many items the first and last sit close
   /// to the bar's ends and their notch would run into the corners. Moving the
   /// items in by just enough keeps both the notch and the corners the same
-  /// shape wherever the dot is.
+  /// shape wherever the dot is, and never makes an item narrower than
+  /// [minItemWidth].
   double get sideInset {
     if (itemCount < 2) return 0;
     final needed = cornerRadius + notchHalfWidth;
     final firstCenter = width / (2 * itemCount);
     if (firstCenter >= needed) return 0;
-    // Solve inset + (width - 2 * inset) / (2 * itemCount) == needed. The
-    // corner radius guarantees width >= 2 * needed, so the result leaves the
-    // last item just as far from the other end.
-    return (needed - firstCenter) / (1 - 1 / itemCount);
+    // Solve inset + (width - 2 * inset) / (2 * itemCount) == needed. On a bar
+    // narrower than minWidth this can't be met; keep the items usable then.
+    final inset = (needed - firstCenter) / (1 - 1 / itemCount);
+    final mostAllowed = (width - itemCount * minItemWidth) / 2;
+    return inset.clamp(0.0, math.max(0.0, mostAllowed));
   }
 
   /// The x of the center of item [index], which may be fractional.
@@ -64,10 +87,20 @@ class NavGeometry {
     return inset + (index + 0.5) * (width - 2 * inset) / itemCount;
   }
 
-  /// The bar's outline, left to right, with the notch centered on [notchX].
-  Path outline(double notchX) {
-    final radius = cornerRadius;
+  /// Where the notch goes for a dot at [dotX]: centered on it, unless the bar
+  /// is narrower than [minWidth], where it is kept inside the bar instead.
+  double notchCenter(double dotX) {
     final half = notchHalfWidth;
+    if (width <= half * 2) return width / 2;
+    return dotX.clamp(half, width - half);
+  }
+
+  /// The bar's outline, left to right, with the notch around a dot at [dotX].
+  Path outline(double dotX) {
+    final notchX = notchCenter(dotX);
+    final radius = cornerRadius;
+    // Only a bar narrower than minWidth needs a narrower notch.
+    final half = math.min(notchHalfWidth, width / 2);
     final depth = notchDepth;
 
     return Path()
@@ -75,17 +108,17 @@ class NavGeometry {
       ..quadraticBezierTo(0, 0, radius, 0)
       ..lineTo(notchX - half, 0)
       ..cubicTo(
-        notchX - half * 0.5,
+        notchX - half * 0.55,
         0,
-        notchX - half * 0.4,
+        notchX - half * 0.45,
         depth,
         notchX,
         depth,
       )
       ..cubicTo(
-        notchX + half * 0.4,
+        notchX + half * 0.45,
         depth,
-        notchX + half * 0.5,
+        notchX + half * 0.55,
         0,
         notchX + half,
         0,
@@ -107,6 +140,11 @@ class NavGeometry {
       other.itemCount == itemCount &&
       other.borderRadius == borderRadius &&
       other.indicatorSize == indicatorSize;
+
+  @override
+  String toString() => 'NavGeometry(width: $width, height: $height, '
+      'itemCount: $itemCount, borderRadius: $borderRadius, '
+      'indicatorSize: $indicatorSize)';
 
   @override
   int get hashCode =>

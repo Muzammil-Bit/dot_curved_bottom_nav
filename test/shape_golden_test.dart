@@ -48,8 +48,10 @@ void main() {
     'narrow_large_dot': _shape(index: 0, width: 280, indicatorSize: 9),
     'square_corners': _shape(index: 0, borderRadius: 0),
     'first_of_five_rtl': _shape(index: 0, textDirection: TextDirection.rtl),
-    'narrow_first_of_five': _shape(index: 0, width: 120),
-    'too_narrow_for_corners': _shape(index: 0, width: 80, items: 2),
+    // The narrowest bar that fits five items.
+    'five_items_at_min_width': _shape(index: 0, width: 204),
+    // Too narrow for full corners, so all four shrink together.
+    'two_items_small_corners': _shape(index: 0, width: 100, items: 2),
     'largest_dot': _shape(index: 0, height: 75, indicatorSize: 16.75),
     'one_item': _shape(index: 0, items: 1, width: 120),
   };

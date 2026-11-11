@@ -203,6 +203,14 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
                         borderRadius: widget.borderRadius,
                         indicatorSize: widget.indicatorSize,
                       );
+                      assert(
+                        geometry.fits,
+                        'DotCurvedBottomNav is ${constraints.maxWidth} wide but '
+                        'needs at least ${geometry.minWidth} for '
+                        '${widget.items.length} items with an indicatorSize of '
+                        '${widget.indicatorSize}. Reduce the margin, the number '
+                        'of items or the indicatorSize.',
+                      );
                       return _buildItems(geometry);
                     },
                   ),

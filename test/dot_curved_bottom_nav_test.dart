@@ -365,6 +365,62 @@ void main() {
       });
     }
 
+    testWidgets('every item is tappable on the narrowest supported bar',
+        (tester) async {
+      final taps = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: Center(
+              // 204 is the minimum for five items with the default dot.
+              child: SizedBox(
+                width: 204,
+                child: DotCurvedBottomNav(
+                  margin: EdgeInsets.zero,
+                  onTap: taps.add,
+                  items: _items(5),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final centers = [
+        for (final icon in _icons) tester.getCenter(find.byIcon(icon)).dx,
+      ];
+      for (var i = 1; i < centers.length; i++) {
+        expect(centers[i] - centers[i - 1], greaterThanOrEqualTo(40));
+      }
+      for (final icon in _icons) {
+        await tester.tap(find.byIcon(icon));
+      }
+      expect(taps, [0, 1, 2, 3, 4]);
+    });
+
+    testWidgets('reports a bar too narrow for its items', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: Center(
+              child: SizedBox(
+                width: 150,
+                child: DotCurvedBottomNav(
+                  margin: EdgeInsets.zero,
+                  items: _items(5),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        tester.takeException().toString(),
+        contains('needs at least 204.0 for 5 items'),
+      );
+    });
+
     testWidgets('keeps the icons below the notch', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
