@@ -1,113 +1,138 @@
 import 'package:dot_curved_bottom_nav/dot_curved_bottom_nav.dart';
 import 'package:flutter/material.dart';
 
+import 'nav_style.dart';
+import 'pages/home_page.dart';
+import 'pages/inbox_page.dart';
+import 'pages/profile_page.dart';
+import 'pages/saved_page.dart';
+import 'pages/style_page.dart';
+
 void main() {
-  runApp(const MyApp());
+  runApp(const ExampleApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ExampleApp extends StatelessWidget {
+  const ExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const seed = Color(0xff4F8BFF);
     return MaterialApp(
-      title: 'Curved Dotted Bottom Nav',
+      title: 'Dot Curved Bottom Nav',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
         useMaterial3: true,
       ),
-      home: const MyHomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: seed,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const ShowcaseScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+/// The tabs in the order they appear in the bar. The Style tab sits second so
+/// it stays visible when the bar is cut down to two items.
+const _tabs = <({IconData icon, String label})>[
+  (icon: Icons.home_rounded, label: 'Home'),
+  (icon: Icons.tune_rounded, label: 'Style'),
+  (icon: Icons.chat_bubble_rounded, label: 'Inbox'),
+  (icon: Icons.person_rounded, label: 'Profile'),
+  (icon: Icons.bookmark_rounded, label: 'Saved'),
+];
+
+class ShowcaseScreen extends StatefulWidget {
+  const ShowcaseScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ShowcaseScreen> createState() => _ShowcaseScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _currentPage = 0;
+class _ShowcaseScreenState extends State<ShowcaseScreen> {
+  int _currentIndex = 0;
+  NavStyle _style = const NavStyle();
+
+  // Only one tab is built at a time, so every tab can share this controller
+  // and the bar hides on scroll no matter which tab is open.
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateStyle(NavStyle style) {
+    setState(() {
+      _style = style;
+      if (_currentIndex >= style.itemCount) _currentIndex = 1;
+    });
+  }
+
+  Widget _buildPage() {
+    final controller = _scrollController;
+    return switch (_currentIndex) {
+      0 => HomePage(
+          scrollController: controller,
+          onOpenStyle: () => setState(() => _currentIndex = 1),
+        ),
+      1 => StylePage(
+          scrollController: controller,
+          style: _style,
+          onChanged: _updateStyle,
+        ),
+      2 => InboxPage(scrollController: controller),
+      3 => ProfilePage(scrollController: controller),
+      _ => SavedPage(scrollController: controller),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: _currentPage == 1
-          ? ListView.separated(
-              controller: _scrollController,
-              itemBuilder: (BuildContext context, int index) {
-                return const ListTile(
-                  title: Text("I maybe a notification!"),
-                  leading: Icon(Icons.notification_important),
-                );
-              },
-              separatorBuilder: (BuildContext context, int index) {
-                return const SizedBox(
-                  height: 10,
-                );
-              },
-              itemCount: 50,
-            )
-          : AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              color: [
-                const Color(0xffF5F7F8),
-                const Color(0xff9EC8B9),
-                const Color(0xffFDE5D4),
-                const Color(0xffF1D4E5)
-              ][_currentPage],
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      'Taped On Index $_currentPage',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
+      body: KeyedSubtree(
+        key: ValueKey(_currentIndex),
+        child: _buildPage(),
+      ),
+      bottomNavigationBar: DotCurvedBottomNav(
+        // The bar sizes its animation to the item count when it is created,
+        // so rebuild it from scratch when the count changes.
+        key: ValueKey(_style.itemCount),
+        scrollController: _scrollController,
+        hideOnScroll: _style.hideOnScroll,
+        selectedIndex: _currentIndex,
+        backgroundColor: _style.backgroundColor,
+        indicatorColor: _style.indicatorColor,
+        indicatorSize: _style.indicatorSize,
+        borderRadius: _style.borderRadius,
+        height: _style.height,
+        margin: EdgeInsets.fromLTRB(
+          _style.horizontalMargin,
+          0,
+          _style.horizontalMargin,
+          20,
+        ),
+        animationDuration: Duration(milliseconds: _style.durationMs),
+        animationCurve: _style.curve.curve,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: [
+          for (var i = 0; i < _style.itemCount; i++)
+            Tooltip(
+              message: _tabs[i].label,
+              child: Icon(
+                _tabs[i].icon,
+                color: i == _currentIndex
+                    ? _style.indicatorColor
+                    : _style.idleIconColor,
               ),
             ),
-      bottomNavigationBar: DotCurvedBottomNav(
-        scrollController: _scrollController,
-
-        hideOnScroll: true,
-        indicatorColor: Colors.blue,
-        backgroundColor: Colors.black,
-        animationDuration: const Duration(milliseconds: 300),
-        animationCurve: Curves.ease,
-        // margin: const EdgeInsets.all(0),
-        selectedIndex: _currentPage,
-        indicatorSize: 5,
-        borderRadius: 25,
-        height: 70,
-        onTap: (index) {
-          setState(() => _currentPage = index);
-        },
-        items: [
-          Icon(
-            Icons.home,
-            color: _currentPage == 0 ? Colors.blue : Colors.white,
-          ),
-          Icon(
-            Icons.notification_add,
-            color: _currentPage == 1 ? Colors.blue : Colors.white,
-          ),
-          Icon(
-            Icons.color_lens,
-            color: _currentPage == 2 ? Colors.blue : Colors.white,
-          ),
-          Icon(
-            Icons.person,
-            color: _currentPage == 3 ? Colors.blue : Colors.white,
-          ),
         ],
       ),
     );
