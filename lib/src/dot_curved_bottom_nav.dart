@@ -181,23 +181,37 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
                     ),
                   ),
                 ),
+                // Same side inset as the painter, so each icon stays centered
+                // under its notch.
                 Positioned(
                   left: 0,
                   right: 0,
                   top: widget.height * 0.4,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (int i = 0; i < widget.items.length; i++)
-                        Expanded(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onTap: () => _buttonTap(i),
-                            child: widget.items[i],
-                          ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final inset = NavGeometry(
+                        itemCount: widget.items.length,
+                        height: widget.height,
+                        borderRadius: widget.borderRadius,
+                        indicatorSize: widget.indicatorSize,
+                      ).sideInset(constraints.maxWidth);
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: inset),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            for (int i = 0; i < widget.items.length; i++)
+                              Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onTap: () => _buttonTap(i),
+                                  child: widget.items[i],
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
+                      );
+                    },
                   ),
                 ),
               ],
