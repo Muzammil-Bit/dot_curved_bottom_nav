@@ -100,6 +100,17 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   void didUpdateWidget(covariant DotCurvedBottomNav oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController?.removeListener(_scrollListener);
+      widget.scrollController?.addListener(_scrollListener);
+    }
+
+    // The scroll listener ignores scrolling once hiding is turned off, so
+    // bring the bar back here or it stays hidden.
+    if (!widget.hideOnScroll && _sliderController.value > 0) {
+      _sliderController.reverse();
+    }
+
     if (oldWidget.selectedIndex != widget.selectedIndex) {
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
         _buttonTap(widget.selectedIndex);
@@ -115,7 +126,7 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   @override
   void initState() {
     super.initState();
-    _pos = widget.selectedIndex / widget.items.length;
+    _pos = widget.selectedIndex.toDouble();
     _animationController = AnimationController(
       vsync: this,
       value: _pos,
