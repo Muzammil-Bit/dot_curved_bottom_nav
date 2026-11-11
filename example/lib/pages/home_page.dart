@@ -38,7 +38,7 @@ class HomePage extends StatelessWidget {
       slivers: [
         const SliverAppBar(pinned: true, title: Text('Dot curved bottom nav')),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 16),
           sliver: SliverList.list(
             children: [
               Text(
@@ -67,76 +67,10 @@ class HomePage extends StatelessWidget {
                     subtitle: Text(feature.body),
                   ),
                 ),
-              const SizedBox(height: 12),
-              Text('Latest stories', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 12),
             ],
           ),
         ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 16),
-          sliver: SliverList.builder(
-            itemCount: 12,
-            itemBuilder: (context, index) => _StoryCard(index: index),
-          ),
-        ),
       ],
-    );
-  }
-}
-
-class _StoryCard extends StatelessWidget {
-  const _StoryCard({required this.index});
-
-  final int index;
-
-  static const _titles = [
-    'Designing calm interfaces',
-    'Motion that explains itself',
-    'Why small details matter',
-    'Building for one hand',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hue = (index * 47) % 360;
-    final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.55, 0.6).toColor();
-
-    return Card.outlined(
-      clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            color: color.withValues(alpha: 0.25),
-            child: Icon(Icons.auto_stories_rounded, color: color, size: 32),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _titles[index % _titles.length],
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${3 + index % 6} min read',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
