@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Paints the bar's background with a notch around the dot indicator.
@@ -26,71 +28,85 @@ class CurvedNavPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Keep overshooting curves from pushing the notch past the bar's ends.
-    final index = position.value.clamp(0.0, itemsLength - 1.0);
-    final loc = 1.0 / itemsLength * (index + 0.48);
-
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final circlePaint = Paint()
-      ..color = indicatorColor
-      ..style = PaintingStyle.fill;
-
-    final height = size.height;
     final width = size.width;
+    final itemWidth = width / itemsLength;
 
-    const s = 0.06;
-    const depth = 0.24;
-    final valleyWith = indicatorSize + 5;
+    // Keep overshooting curves from pushing the dot past the bar's ends.
+    final index = position.value.clamp(0.0, itemsLength - 1.0);
+    final dotX = (index + 0.5) * itemWidth;
 
-    final path = Path()
-      // top Left Corner
-      ..moveTo(0, borderRadius)
-      ..quadraticBezierTo(0, 0, borderRadius, 0)
-      ..lineTo(loc * width - valleyWith * 2, 0)
-      ..cubicTo(
-        (loc + s * 0.20) * size.width - valleyWith,
-        size.height * 0.05,
-        loc * size.width - valleyWith,
-        size.height * depth,
-        (loc + s * 0.50) * size.width - valleyWith,
-        size.height * depth,
-      )
-      ..cubicTo(
-        (loc + s * 0.20) * size.width + valleyWith,
-        size.height * depth,
-        loc * size.width + valleyWith,
-        0,
-        (loc + s * 0.60) * size.width + valleyWith,
-        0,
-      )
-
-      // top right corner
-      ..lineTo(size.width - borderRadius, 0)
-      ..quadraticBezierTo(width, 0, width, borderRadius)
-
-      // bottom right corner
-      ..lineTo(width, height - borderRadius)
-      ..quadraticBezierTo(width, height, width - borderRadius, height)
-
-      // bottom left corner
-      ..lineTo(borderRadius, height)
-      ..quadraticBezierTo(0, height, 0, height - borderRadius)
-      ..close();
+    var path = buildPath(size, dotX);
+    var dot = Offset(dotX, indicatorSize);
 
     // The shape is laid out left to right. Right-to-left apps put the first
     // item on the right, so mirror it.
-    final rtl = textDirection == TextDirection.rtl;
-    final mirror = Matrix4.identity()
-      ..setEntry(0, 0, -1)
-      ..setEntry(0, 3, width);
+    if (textDirection == TextDirection.rtl) {
+      final mirror = Matrix4.identity()
+        ..setEntry(0, 0, -1)
+        ..setEntry(0, 3, width);
+      path = path.transform(mirror.storage);
+      dot = Offset(width - dot.dx, dot.dy);
+    }
 
-    canvas.drawPath(rtl ? path.transform(mirror.storage) : path, paint);
+    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawCircle(dot, indicatorSize, Paint()..color = indicatorColor);
+  }
 
-    final dotX = rtl ? width - loc * width : loc * width;
-    canvas.drawCircle(Offset(dotX, indicatorSize), indicatorSize, circlePaint);
+  /// The bar's outline with a notch centered on [dotX], left to right.
+  @visibleForTesting
+  Path buildPath(Size size, double dotX) {
+    final width = size.width;
+    final height = size.height;
+
+    // The notch is sized from the dot so they always fit together, and kept
+    // shallow enough to leave room for the icons below it.
+    final halfWidth = indicatorSize * 2 + 12;
+    final depth = math.min(
+      math.max(height * 0.24, indicatorSize * 2 + 4),
+      height / 2,
+    );
+
+    // On a very narrow bar the notch can't be centered on the dot without
+    // running off the end, so keep it inside the bar.
+    final notchX = width <= halfWidth * 2
+        ? width / 2
+        : dotX.clamp(halfWidth, width - halfWidth);
+    final notchStart = notchX - halfWidth;
+    final notchEnd = notchX + halfWidth;
+
+    // Corners can't be rounder than half the height. The top corners also
+    // shrink as the notch gets close, so the two never overlap.
+    final radius = math.min(borderRadius, height / 2);
+    final topLeft = math.min(radius, notchStart);
+    final topRight = math.min(radius, width - notchEnd);
+
+    return Path()
+      ..moveTo(0, topLeft)
+      ..quadraticBezierTo(0, 0, topLeft, 0)
+      ..lineTo(notchStart, 0)
+      ..cubicTo(
+        notchX - halfWidth * 0.5,
+        0,
+        notchX - halfWidth * 0.4,
+        depth,
+        notchX,
+        depth,
+      )
+      ..cubicTo(
+        notchX + halfWidth * 0.4,
+        depth,
+        notchX + halfWidth * 0.5,
+        0,
+        notchEnd,
+        0,
+      )
+      ..lineTo(width - topRight, 0)
+      ..quadraticBezierTo(width, 0, width, topRight)
+      ..lineTo(width, height - radius)
+      ..quadraticBezierTo(width, height, width - radius, height)
+      ..lineTo(radius, height)
+      ..quadraticBezierTo(0, height, 0, height - radius)
+      ..close();
   }
 
   @override

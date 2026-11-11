@@ -17,3 +17,4 @@
 * The bar stays above the bottom safe area. The bottom margin is now at least the safe area inset.
 * Hide on scroll works with a controller shared by several scroll views, follows quick changes of direction, and brings the bar back when it is turned off.
 * Moving the dot now repaints only the bar's background instead of rebuilding the whole bar on every frame.
+* Fixed a spike at the corner when the dot is on the first or last item. The notch is now centered on the dot and the corner narrows instead of overlapping it.
