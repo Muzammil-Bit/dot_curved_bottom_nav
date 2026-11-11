@@ -117,6 +117,31 @@ Widget _scrollingApp({
   );
 }
 
+/// A five-item bar 360 wide, like a phone's, where the first and last items
+/// are moved in from the ends to clear the corners.
+Widget _phoneBar({
+  required ValueChanged<int> onTap,
+  TextDirection textDirection = TextDirection.ltr,
+}) {
+  return MaterialApp(
+    home: Directionality(
+      textDirection: textDirection,
+      child: Scaffold(
+        bottomNavigationBar: Center(
+          child: SizedBox(
+            width: 360,
+            child: DotCurvedBottomNav(
+              margin: EdgeInsets.zero,
+              onTap: onTap,
+              items: _items(5),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 void main() {
   group('lifecycle', () {
     testWidgets('can be removed in the middle of an animation', (tester) async {
@@ -355,61 +380,45 @@ void main() {
 
     for (final textDirection in TextDirection.values) {
       testWidgets(
-          'taps beside the first and last item reach them '
-          '(${textDirection.name})', (tester) async {
+          'taps in the space at either end, at any height, reach the '
+          'nearest item (${textDirection.name})', (tester) async {
         final taps = <int>[];
         await tester.pumpWidget(
-          MaterialApp(
-            home: Directionality(
-              textDirection: textDirection,
-              child: Scaffold(
-                bottomNavigationBar: DotCurvedBottomNav(
-                  margin: EdgeInsets.zero,
-                  onTap: taps.add,
-                  items: _items(5),
-                ),
-              ),
-            ),
-          ),
+          _phoneBar(onTap: taps.add, textDirection: textDirection),
         );
+
+        // The end space must exist, or these taps prove nothing.
+        const geometry = NavGeometry(
+          width: 360,
+          height: 75,
+          itemCount: 5,
+          borderRadius: 25,
+          indicatorSize: 5,
+        );
+        expect(geometry.sideInset, greaterThan(8));
 
         final bar = tester.getRect(find.byType(DotCurvedBottomNav));
-        final iconY = tester.getCenter(find.byIcon(Icons.home)).dy;
-        await tester.tapAt(Offset(bar.left + 2, iconY));
-        await tester.tapAt(Offset(bar.right - 2, iconY));
+        for (final y in [bar.top + 10, bar.center.dy, bar.bottom - 3]) {
+          await tester.tapAt(Offset(bar.left + 2, y));
+          await tester.tapAt(Offset(bar.right - 2, y));
+        }
 
-        expect(
-          taps,
-          textDirection == TextDirection.ltr ? [0, 4] : [4, 0],
-        );
+        final leftRight = textDirection == TextDirection.ltr ? [0, 4] : [4, 0];
+        expect(taps, [...leftRight, ...leftRight, ...leftRight]);
       });
     }
 
-    testWidgets('the whole height of the bar is tappable', (tester) async {
+    testWidgets('the whole height of an item is tappable', (tester) async {
       final taps = <int>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            bottomNavigationBar: DotCurvedBottomNav(
-              margin: EdgeInsets.zero,
-              onTap: taps.add,
-              items: _items(5),
-            ),
-          ),
-        ),
-      );
+      await tester.pumpWidget(_phoneBar(onTap: taps.add));
 
       final bar = tester.getRect(find.byType(DotCurvedBottomNav));
       final second = tester.getCenter(find.byIcon(Icons.search)).dx;
-      // Beside the notch, above the icons.
+      // Beside the notch, above the icons, then near the bottom edge.
       await tester.tapAt(Offset(second, bar.top + 10));
-      // In the space at each end, also near the top.
-      await tester.tapAt(Offset(bar.left + 2, bar.top + 10));
-      await tester.tapAt(Offset(bar.right - 2, bar.top + 10));
-      // Near the bottom edge.
       await tester.tapAt(Offset(second, bar.bottom - 3));
 
-      expect(taps, [1, 0, 4, 1]);
+      expect(taps, [1, 1]);
     });
 
     testWidgets('every item is tappable on the narrowest supported bar',
