@@ -233,4 +233,53 @@ void main() {
       expect(_barTop(tester), shown);
     });
   });
+
+  group('layout', () {
+    testWidgets('puts the dot under the selected item in right-to-left apps',
+        (tester) async {
+      for (final index in [0, 2]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                bottomNavigationBar: DotCurvedBottomNav(
+                  selectedIndex: index,
+                  items: _items(4),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        _expectDotUnder(tester, _icons[index]);
+      }
+    });
+
+    testWidgets('stays above the bottom safe area', (tester) async {
+      tester.view.padding = const FakeViewPadding(bottom: 34 * 3);
+      addTearDown(tester.view.resetPadding);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: DotCurvedBottomNav(
+              margin: EdgeInsets.zero,
+              items: _items(3),
+            ),
+          ),
+        ),
+      );
+
+      final bar = find
+          .descendant(
+            of: find.byType(DotCurvedBottomNav),
+            matching: find.byType(CustomPaint),
+          )
+          .first;
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(tester.getBottomLeft(bar).dy, screenHeight - 34);
+    });
+  });
 }

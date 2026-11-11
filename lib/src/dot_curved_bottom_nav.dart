@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -143,15 +145,21 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
 
   @override
   Widget build(BuildContext context) {
+    // Keep the bar clear of the home indicator and system navigation.
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final margin = widget.margin.copyWith(
+      bottom: math.max(widget.margin.bottom, safeBottom),
+    );
+
     return AnimatedBuilder(
       animation: _sliderController,
       builder: (context, child) {
         return Transform.translate(
-          offset: Offset(0,
-              (widget.height + widget.margin.bottom) * _sliderController.value),
+          offset: Offset(
+              0, (widget.height + margin.bottom) * _sliderController.value),
           child: Container(
             height: widget.height,
-            margin: widget.margin,
+            margin: margin,
             child: Stack(
               children: [
                 Positioned.fill(

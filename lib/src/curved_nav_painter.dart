@@ -75,10 +75,17 @@ class CurvedNavPainter extends CustomPainter {
       ..quadraticBezierTo(0, height, 0, height - borderRadius)
       ..close();
 
-    canvas.drawPath(path, paint);
+    // The shape is laid out left to right. Right-to-left apps put the first
+    // item on the right, so mirror it.
+    final rtl = textDirection == TextDirection.rtl;
+    final mirror = Matrix4.identity()
+      ..setEntry(0, 0, -1)
+      ..setEntry(0, 3, width);
 
-    canvas.drawCircle(
-        Offset(loc * width, indicatorSize), indicatorSize, circlePaint);
+    canvas.drawPath(rtl ? path.transform(mirror.storage) : path, paint);
+
+    final dotX = rtl ? width - loc * width : loc * width;
+    canvas.drawCircle(Offset(dotX, indicatorSize), indicatorSize, circlePaint);
   }
 
   @override
