@@ -81,19 +81,34 @@ class DotCurvedBottomNav extends StatefulWidget {
 
 class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late double _pos;
+  // Unbounded so it keeps working when the number of items changes, and so
+  // overshooting curves can run past the first and last item.
+  late final AnimationController _animationController =
+      AnimationController.unbounded(
+    vsync: this,
+    value: widget.selectedIndex.toDouble(),
+  );
 
   late final AnimationController _sliderController = AnimationController(
     vsync: this,
     duration: widget.animationDuration,
-    reverseDuration: widget.animationDuration,
   );
 
+  /// The index the dot is at or is moving to.
+  late int _targetIndex;
+
+  late double _pos;
+
   @override
-  void dispose() {
-    super.dispose();
-    widget.scrollController?.removeListener(_scrollListener);
+  void initState() {
+    super.initState();
+    // Set these here rather than lazily: read for the first time inside
+    // didUpdateWidget, they would pick up the new widget's index.
+    _targetIndex = widget.selectedIndex;
+    _pos = widget.selectedIndex.toDouble();
+    _animationController
+        .addListener(() => setState(() => _pos = _animationController.value));
+    widget.scrollController?.addListener(_scrollListener);
   }
 
   @override
@@ -105,38 +120,27 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
       widget.scrollController?.addListener(_scrollListener);
     }
 
+    if (oldWidget.animationDuration != widget.animationDuration) {
+      _sliderController.duration = widget.animationDuration;
+    }
+
     // The scroll listener ignores scrolling once hiding is turned off, so
     // bring the bar back here or it stays hidden.
     if (!widget.hideOnScroll && _sliderController.value > 0) {
       _sliderController.reverse();
     }
 
-    if (oldWidget.selectedIndex != widget.selectedIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        _buttonTap(widget.selectedIndex);
-      });
-    }
+    // The app changed the selection itself. Move the dot, but don't report
+    // it through onTap since the user didn't tap anything.
+    _moveTo(widget.selectedIndex);
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _pos = widget.selectedIndex.toDouble();
-    _animationController = AnimationController(
-      vsync: this,
-      value: _pos,
-      lowerBound: 0,
-      upperBound: widget.items.length.toDouble(),
-    );
-    _animationController
-        .addListener(() => setState(() => _pos = _animationController.value));
-
-    widget.scrollController?.addListener(_scrollListener);
+  void dispose() {
+    widget.scrollController?.removeListener(_scrollListener);
+    _animationController.dispose();
+    _sliderController.dispose();
+    super.dispose();
   }
 
   @override
@@ -213,10 +217,17 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   }
 
   void _buttonTap(int index) {
-    if (widget.onTap != null) {
-      widget.onTap!(index);
-    }
-    _animationController.animateTo(index.toDouble(),
-        duration: widget.animationDuration, curve: widget.animationCurve);
+    widget.onTap?.call(index);
+    _moveTo(index);
+  }
+
+  void _moveTo(int index) {
+    if (index == _targetIndex) return;
+    _targetIndex = index;
+    _animationController.animateTo(
+      index.toDouble(),
+      duration: widget.animationDuration,
+      curve: widget.animationCurve,
+    );
   }
 }

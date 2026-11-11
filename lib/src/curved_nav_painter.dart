@@ -18,7 +18,9 @@ class CurvedNavPainter extends CustomPainter {
     this.indicatorSize = 5,
     this.borderRadius = 25,
   }) {
-    loc = 1.0 / itemsLength * (startingLoc + 0.48);
+    // Keep overshooting curves from pushing the notch past the bar's ends.
+    final position = startingLoc.clamp(0.0, itemsLength - 1.0);
+    loc = 1.0 / itemsLength * (position + 0.48);
   }
 
   @override
