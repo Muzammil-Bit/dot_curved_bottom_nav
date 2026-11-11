@@ -5,53 +5,55 @@ import 'package:flutter/rendering.dart';
 
 import 'curved_nav_painter.dart';
 
-/// A beautiful and animated bottom navigation that may or may not be curved
-/// and has a beautiful indicator around which the bottom nav is curved.
+/// A bottom navigation bar whose top edge curves around a dot that marks the
+/// selected item.
 ///
-/// Update [selectedIndex] to change the selected item.
-/// [selectedIndex] is required and must not be null.
+/// The app owns the selection: pass the current index as [selectedIndex] and
+/// update it from [onTap]. Changing [selectedIndex] in code also moves the dot.
 class DotCurvedBottomNav extends StatefulWidget {
-  /// Animation curve of hiding animation and dot indicator moving between
-  /// indices.
+  /// The curve the dot follows when it moves between items.
   final Curve animationCurve;
 
-  /// Animation Duration of hiding animation and dot indicator moving between
-  /// indices.
+  /// How long the dot takes to move between items, and how long the bar takes
+  /// to hide or show when [hideOnScroll] is on.
   final Duration animationDuration;
 
-  /// Background color of the bottom navigation
+  /// The color of the bar.
   final Color backgroundColor;
 
-  /// Color fo the dot indicator shown on the currently selected item
+  /// The color of the dot shown above the selected item.
   final Color indicatorColor;
 
-  /// Configures height of bottom navigation. The limitations of [height] are
-  /// enforced through assertions.
+  /// The height of the bar, not counting [margin]. At most 75.
   final double height;
 
-  /// Configures the size of indicator
+  /// The radius of the dot.
   final double indicatorSize;
 
-  /// Configures currently selected / highlighted index
+  /// The index of the selected item.
   final int selectedIndex;
 
-  /// Defines the appearance of the buttons that are displayed in the bottom
-  /// navigation bar. This should have at least two items and five at most.
+  /// The widgets shown in the bar, usually icons. Use two to five.
   final List<Widget> items;
 
-  /// Callback function that is invoked whenever an Item is tapped on by the user
+  /// Called with an item's index when the user taps it.
   final ValueChanged<int>? onTap;
 
-  /// [scrollController] is used to listen to when the user is scrolling the page
-  /// and hided the bottom navigation
+  /// The controller of the page's scroll view. Needed when [hideOnScroll] is
+  /// on. It may be attached to several scroll views at once.
   final ScrollController? scrollController;
 
-  /// Used to configure the borderRadius of the [DotCurvedBottomNav]. Defaults to 25.
+  /// The corner radius of the bar, from 0 to 30. Defaults to 25.
   final double borderRadius;
+
+  /// The space around the bar. Increase it to make the bar float.
+  ///
+  /// The bottom margin is never smaller than the device's bottom safe area,
+  /// so the bar stays clear of the home indicator.
   final EdgeInsets margin;
 
-  /// Used to configure the margin around [DotCurvedBottomNav]. Increase it to make
-  /// [DotCurvedBottomNav] float.
+  /// Whether the bar slides away while the user scrolls down and comes back
+  /// when they scroll up. Requires [scrollController].
   final bool hideOnScroll;
 
   DotCurvedBottomNav({

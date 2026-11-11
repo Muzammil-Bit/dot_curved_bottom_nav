@@ -8,3 +8,12 @@
 
 ## 0.0.2
 * Updated doc images and readme
+
+## Unreleased
+* Fixed animation controllers never being disposed, which leaked and raised errors when the bar was removed mid-animation.
+* `onTap` is no longer called again when the app changes `selectedIndex`, so one tap reports one index.
+* The dot now starts on the selected item and follows changes to the number of items and to `animationDuration`.
+* Right-to-left layouts now put the dot under the correct item.
+* The bar stays above the bottom safe area. The bottom margin is now at least the safe area inset.
+* Hide on scroll works with a controller shared by several scroll views, follows quick changes of direction, and brings the bar back when it is turned off.
+* Moving the dot now repaints only the bar's background instead of rebuilding the whole bar on every frame.
