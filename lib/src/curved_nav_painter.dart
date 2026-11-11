@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
 
+/// Paints the bar's background with a notch around the dot indicator.
+///
+/// Listens to [position] itself, so moving the dot only repaints this painter
+/// and never rebuilds or lays out the bar.
 class CurvedNavPainter extends CustomPainter {
-  Color color;
-  late double loc;
-  TextDirection textDirection;
-  final double indicatorSize;
-
-  final Color indicatorColor;
-  double borderRadius;
-
   CurvedNavPainter({
-    required double startingLoc,
-    required int itemsLength,
+    required this.position,
+    required this.itemsLength,
     required this.color,
     required this.textDirection,
     this.indicatorColor = Colors.lightBlue,
     this.indicatorSize = 5,
     this.borderRadius = 25,
-  }) {
-    // Keep overshooting curves from pushing the notch past the bar's ends.
-    final position = startingLoc.clamp(0.0, itemsLength - 1.0);
-    loc = 1.0 / itemsLength * (position + 0.48);
-  }
+  }) : super(repaint: position);
+
+  /// The dot's position as an item index. Fractional while animating.
+  final Animation<double> position;
+  final int itemsLength;
+  final Color color;
+  final TextDirection textDirection;
+  final Color indicatorColor;
+  final double indicatorSize;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Keep overshooting curves from pushing the notch past the bar's ends.
+    final index = position.value.clamp(0.0, itemsLength - 1.0);
+    final loc = 1.0 / itemsLength * (index + 0.48);
+
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -89,7 +94,15 @@ class CurvedNavPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return this != oldDelegate;
+  bool shouldRepaint(CurvedNavPainter oldDelegate) {
+    // Position changes repaint through the `repaint` listenable, so only a
+    // different animation or appearance needs a repaint here.
+    return oldDelegate.position != position ||
+        oldDelegate.itemsLength != itemsLength ||
+        oldDelegate.color != color ||
+        oldDelegate.textDirection != textDirection ||
+        oldDelegate.indicatorColor != indicatorColor ||
+        oldDelegate.indicatorSize != indicatorSize ||
+        oldDelegate.borderRadius != borderRadius;
   }
 }

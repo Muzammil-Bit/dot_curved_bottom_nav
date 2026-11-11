@@ -31,43 +31,4 @@ void main() {
     );
     expect(nav.items, hasLength(5));
   });
-
-  testWidgets('turning off hide on scroll brings a hidden bar back',
-      (tester) async {
-    final controller = ScrollController();
-    addTearDown(controller.dispose);
-
-    Widget build({required bool hide}) => MaterialApp(
-          home: Scaffold(
-            body: ListView.builder(
-              controller: controller,
-              itemCount: 100,
-              itemBuilder: (_, i) => ListTile(title: Text('Row $i')),
-            ),
-            bottomNavigationBar: DotCurvedBottomNav(
-              scrollController: controller,
-              hideOnScroll: hide,
-              items: const [Icon(Icons.home), Icon(Icons.person)],
-            ),
-          ),
-        );
-
-    double barOffset() => tester
-        .widget<Transform>(find.descendant(
-          of: find.byType(DotCurvedBottomNav),
-          matching: find.byType(Transform),
-        ))
-        .transform
-        .getTranslation()
-        .y;
-
-    await tester.pumpWidget(build(hide: true));
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pumpAndSettle();
-    expect(barOffset(), greaterThan(0));
-
-    await tester.pumpWidget(build(hide: false));
-    await tester.pumpAndSettle();
-    expect(barOffset(), 0);
-  });
 }

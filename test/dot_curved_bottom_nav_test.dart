@@ -1,4 +1,5 @@
 import 'package:dot_curved_bottom_nav/dot_curved_bottom_nav.dart';
+import 'package:dot_curved_bottom_nav/src/curved_nav_painter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -280,6 +281,42 @@ void main() {
       final screenHeight =
           tester.view.physicalSize.height / tester.view.devicePixelRatio;
       expect(tester.getBottomLeft(bar).dy, screenHeight - 34);
+    });
+  });
+
+  group('performance', () {
+    testWidgets('moving the dot repaints without rebuilding the bar',
+        (tester) async {
+      await tester.pumpWidget(const _Host());
+
+      var rebuilds = 0;
+      debugOnRebuildDirtyWidget = (element, _) {
+        if (element.widget is DotCurvedBottomNav) rebuilds++;
+      };
+      addTearDown(() => debugOnRebuildDirtyWidget = null);
+
+      await tester.tap(find.byIcon(Icons.person));
+      // About 20 frames at 60 fps for the 300ms animation.
+      for (var frame = 0; frame < 20; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      // Once, because the host passes the new selectedIndex down.
+      expect(rebuilds, 1);
+    });
+
+    test('the painter repaints only when its appearance changes', () {
+      const position = AlwaysStoppedAnimation(1.0);
+      CurvedNavPainter painter({Color color = Colors.black}) =>
+          CurvedNavPainter(
+            position: position,
+            itemsLength: 4,
+            color: color,
+            textDirection: TextDirection.ltr,
+          );
+
+      expect(painter().shouldRepaint(painter()), isFalse);
+      expect(painter(color: Colors.white).shouldRepaint(painter()), isTrue);
     });
   });
 }

@@ -96,20 +96,20 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     duration: widget.animationDuration,
   );
 
+  late final Animation<Offset> _slideAnimation = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(0, 1),
+  ).animate(_sliderController);
+
   /// The index the dot is at or is moving to.
   late int _targetIndex;
-
-  late double _pos;
 
   @override
   void initState() {
     super.initState();
-    // Set these here rather than lazily: read for the first time inside
-    // didUpdateWidget, they would pick up the new widget's index.
+    // Set here rather than lazily: read for the first time inside
+    // didUpdateWidget, it would pick up the new widget's index.
     _targetIndex = widget.selectedIndex;
-    _pos = widget.selectedIndex.toDouble();
-    _animationController
-        .addListener(() => setState(() => _pos = _animationController.value));
     widget.scrollController?.addListener(_scrollListener);
   }
 
@@ -151,29 +151,32 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
       bottom: math.max(widget.margin.bottom, safeBottom),
     );
 
-    return AnimatedBuilder(
-      animation: _sliderController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(
-              0, (widget.height + margin.bottom) * _sliderController.value),
-          child: Container(
+    // Hiding slides the bar down by its own height including margins, which
+    // takes it fully off screen.
+    return SlideTransition(
+      position: _slideAnimation,
+      child: RepaintBoundary(
+        child: Padding(
+          padding: margin,
+          child: SizedBox(
             height: widget.height,
-            margin: margin,
             child: Stack(
               children: [
+                // The dot repaints every frame while it moves. Its own layer
+                // keeps the icons from repainting with it.
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: CurvedNavPainter(
-                      startingLoc: _pos,
-                      itemsLength: widget.items.length,
-                      color: widget.backgroundColor,
-                      indicatorColor: widget.indicatorColor,
-                      textDirection: Directionality.of(context),
-                      indicatorSize: widget.indicatorSize,
-                      borderRadius: widget.borderRadius,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: CurvedNavPainter(
+                        position: _animationController,
+                        itemsLength: widget.items.length,
+                        color: widget.backgroundColor,
+                        indicatorColor: widget.indicatorColor,
+                        textDirection: Directionality.of(context),
+                        indicatorSize: widget.indicatorSize,
+                        borderRadius: widget.borderRadius,
+                      ),
                     ),
-                    child: Container(),
                   ),
                 ),
                 Positioned(
@@ -195,12 +198,11 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
                     ],
                   ),
                 ),
-                // Row(),
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
