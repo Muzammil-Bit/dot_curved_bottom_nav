@@ -62,7 +62,7 @@ class DotCurvedBottomNav extends StatefulWidget {
   final double pressedScale;
 
   DotCurvedBottomNav({
-    Key? key,
+    super.key,
     required this.items,
     this.scrollController,
     this.hideOnScroll = false,
@@ -89,8 +89,7 @@ class DotCurvedBottomNav extends StatefulWidget {
           indicatorSize * 2 + 4 <= height / 2,
           'indicatorSize is too large for this height: the dot and the gap '
           'below it must fit in the top half of the bar',
-        ),
-        super(key: key);
+        );
 
   @override
   State<DotCurvedBottomNav> createState() => _DotCurvedBottomNavState();

@@ -1,11 +1,18 @@
 name: dot_curved_bottom_nav
-description: "Stunning Animating Curved Shape Around Indicator Navigation Bar. Adjustable color, background color, animation curve, animation duration."
-version: 0.0.2
+description: "An animated bottom navigation bar whose top edge curves around a dot marking the selected item, with optional hide on scroll."
+version: 0.1.0
 homepage: "https://github.com/Muzammil-Bit/dot_curved_bottom_nav"
+repository: "https://github.com/Muzammil-Bit/dot_curved_bottom_nav"
+issue_tracker: "https://github.com/Muzammil-Bit/dot_curved_bottom_nav/issues"
+topics:
+  - bottom-navigation
+  - navigation-bar
+  - animation
+  - ui
 
 environment:
   sdk: '>=3.2.2 <4.0.0'
-  flutter: ">=1.17.0"
+  flutter: ">=3.16.0"
 
 dependencies:
   flutter:
@@ -14,7 +21,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.0
 
 platforms:
   android:
