@@ -114,7 +114,9 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   late int _targetIndex;
 
   /// The scroll direction last seen for each scroll view on the controller.
-  final Expando<ScrollDirection> _lastDirections = Expando();
+  /// Cleared whenever hiding is turned on or off, or the controller changes,
+  /// so a direction from before doesn't hold back the next scroll.
+  Expando<ScrollDirection> _lastDirections = Expando();
 
   @override
   void initState() {
@@ -140,6 +142,10 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
 
     // The scroll listener ignores scrolling once hiding is turned off, so
     // bring the bar back here or it stays hidden.
+    if (oldWidget.hideOnScroll != widget.hideOnScroll ||
+        oldWidget.scrollController != widget.scrollController) {
+      _lastDirections = Expando();
+    }
     if (!widget.hideOnScroll) _show();
 
     // The app changed the selection itself. Move the dot, but don't report
@@ -233,40 +239,49 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
           child: child,
         );
 
-    return Padding(
-      padding: EdgeInsets.only(top: geometry.notchDepth),
-      child: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: inset),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i <= last; i++)
-                  Expanded(child: item(i, Center(child: widget.items[i]))),
-              ],
-            ),
+    // Tap areas cover the bar's full height. Only the icons sit below the
+    // notch.
+    final iconPadding = EdgeInsets.only(top: geometry.notchDepth);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: inset),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i <= last; i++)
+                Expanded(
+                  child: item(
+                    i,
+                    Padding(
+                      padding: iconPadding,
+                      child: Center(child: widget.items[i]),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          // The space kept free at each end still belongs to the nearest item,
-          // so a tap there isn't lost.
-          if (inset > 0) ...[
-            PositionedDirectional(
-              start: 0,
-              top: 0,
-              bottom: 0,
-              width: inset,
-              child: item(0, const SizedBox.expand()),
-            ),
-            PositionedDirectional(
-              end: 0,
-              top: 0,
-              bottom: 0,
-              width: inset,
-              child: item(last, const SizedBox.expand()),
-            ),
-          ],
+        ),
+        // The space kept free at each end still belongs to the nearest item,
+        // so a tap there isn't lost.
+        if (inset > 0) ...[
+          PositionedDirectional(
+            start: 0,
+            top: 0,
+            bottom: 0,
+            width: inset,
+            child: item(0, const SizedBox.expand()),
+          ),
+          PositionedDirectional(
+            end: 0,
+            top: 0,
+            bottom: 0,
+            width: inset,
+            child: item(last, const SizedBox.expand()),
+          ),
         ],
-      ),
+      ],
     );
   }
 

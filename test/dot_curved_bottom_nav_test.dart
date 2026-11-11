@@ -296,6 +296,26 @@ void main() {
       expect(_barTop(tester), shown);
     });
 
+    testWidgets('hides again after hiding is turned off and back on',
+        (tester) async {
+      await tester.pumpWidget(_scrollingApp(controller: controller));
+      final shown = _barTop(tester);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _scrollingApp(controller: controller, hideOnScroll: false),
+      );
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(_scrollingApp(controller: controller));
+      await tester.pumpAndSettle();
+      expect(_barTop(tester), shown);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_barTop(tester), greaterThan(shown));
+    });
+
     testWidgets('comes back when hiding is turned off', (tester) async {
       await tester.pumpWidget(_scrollingApp(controller: controller));
       final shown = _barTop(tester);
@@ -364,6 +384,33 @@ void main() {
         );
       });
     }
+
+    testWidgets('the whole height of the bar is tappable', (tester) async {
+      final taps = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: DotCurvedBottomNav(
+              margin: EdgeInsets.zero,
+              onTap: taps.add,
+              items: _items(5),
+            ),
+          ),
+        ),
+      );
+
+      final bar = tester.getRect(find.byType(DotCurvedBottomNav));
+      final second = tester.getCenter(find.byIcon(Icons.search)).dx;
+      // Beside the notch, above the icons.
+      await tester.tapAt(Offset(second, bar.top + 10));
+      // In the space at each end, also near the top.
+      await tester.tapAt(Offset(bar.left + 2, bar.top + 10));
+      await tester.tapAt(Offset(bar.right - 2, bar.top + 10));
+      // Near the bottom edge.
+      await tester.tapAt(Offset(second, bar.bottom - 3));
+
+      expect(taps, [1, 0, 4, 1]);
+    });
 
     testWidgets('every item is tappable on the narrowest supported bar',
         (tester) async {
