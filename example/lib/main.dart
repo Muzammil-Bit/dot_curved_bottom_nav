@@ -102,9 +102,6 @@ class _ShowcaseScreenState extends State<ShowcaseScreen> {
         child: _buildPage(),
       ),
       bottomNavigationBar: DotCurvedBottomNav(
-        // The bar sizes its animation to the item count when it is created,
-        // so rebuild it from scratch when the count changes.
-        key: ValueKey(_style.itemCount),
         scrollController: _scrollController,
         hideOnScroll: _style.hideOnScroll,
         selectedIndex: _currentIndex,
