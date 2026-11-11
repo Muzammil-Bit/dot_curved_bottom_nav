@@ -74,6 +74,47 @@ void _expectDotUnder(WidgetTester tester, IconData icon) {
   );
 }
 
+/// The global y of the bar's top edge. Larger means further off screen.
+double _barTop(WidgetTester tester) {
+  return tester
+      .getTopLeft(find
+          .descendant(
+            of: find.byType(DotCurvedBottomNav),
+            matching: find.byType(CustomPaint),
+          )
+          .first)
+      .dy;
+}
+
+Widget _scrollingApp({
+  required ScrollController controller,
+  bool hideOnScroll = true,
+  int scrollViews = 1,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Column(
+        children: [
+          for (var v = 0; v < scrollViews; v++)
+            Expanded(
+              child: ListView.builder(
+                key: ValueKey('list $v'),
+                controller: controller,
+                itemCount: 100,
+                itemBuilder: (_, i) => SizedBox(height: 50, child: Text('$i')),
+              ),
+            ),
+        ],
+      ),
+      bottomNavigationBar: DotCurvedBottomNav(
+        scrollController: controller,
+        hideOnScroll: hideOnScroll,
+        items: _items(3),
+      ),
+    ),
+  );
+}
+
 void main() {
   group('lifecycle', () {
     testWidgets('can be removed in the middle of an animation', (tester) async {
@@ -126,6 +167,70 @@ void main() {
       await tester.pumpWidget(build(3, 2));
       await tester.pumpAndSettle();
       _expectDotUnder(tester, Icons.favorite);
+    });
+  });
+
+  group('hide on scroll', () {
+    late ScrollController controller;
+    setUp(() => controller = ScrollController());
+    tearDown(() => controller.dispose());
+
+    testWidgets('hides when scrolling down and returns when scrolling up',
+        (tester) async {
+      await tester.pumpWidget(_scrollingApp(controller: controller));
+      final shown = _barTop(tester);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(_barTop(tester), greaterThan(shown));
+
+      await tester.drag(find.byType(ListView), const Offset(0, 100));
+      await tester.pumpAndSettle();
+      expect(_barTop(tester), shown);
+    });
+
+    testWidgets('follows a change of direction while it is animating',
+        (tester) async {
+      await tester.pumpWidget(_scrollingApp(controller: controller));
+      final shown = _barTop(tester);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.drag(find.byType(ListView), const Offset(0, 100));
+      await tester.pumpAndSettle();
+
+      expect(_barTop(tester), shown);
+    });
+
+    testWidgets('works when several scroll views share the controller',
+        (tester) async {
+      await tester.pumpWidget(
+        _scrollingApp(controller: controller, scrollViews: 2),
+      );
+      final shown = _barTop(tester);
+
+      await tester.drag(
+        find.byKey(const ValueKey('list 1')),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(_barTop(tester), greaterThan(shown));
+    });
+
+    testWidgets('comes back when hiding is turned off', (tester) async {
+      await tester.pumpWidget(_scrollingApp(controller: controller));
+      final shown = _barTop(tester);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _scrollingApp(controller: controller, hideOnScroll: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_barTop(tester), shown);
     });
   });
 }

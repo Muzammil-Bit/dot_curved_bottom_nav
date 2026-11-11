@@ -126,9 +126,7 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
 
     // The scroll listener ignores scrolling once hiding is turned off, so
     // bring the bar back here or it stays hidden.
-    if (!widget.hideOnScroll && _sliderController.value > 0) {
-      _sliderController.reverse();
-    }
+    if (!widget.hideOnScroll) _show();
 
     // The app changed the selection itself. Move the dot, but don't report
     // it through onTap since the user didn't tap anything.
@@ -198,21 +196,41 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     );
   }
 
-  _scrollListener() {
-    if (_sliderController.isAnimating || widget.hideOnScroll == false) {
+  void _scrollListener() {
+    final controller = widget.scrollController;
+    if (!widget.hideOnScroll || controller == null || !controller.hasClients) {
       return;
     }
 
-    if (widget.scrollController?.position.userScrollDirection ==
-        ScrollDirection.forward) {
-      if (_sliderController.isCompleted) {
-        _sliderController.reverse();
+    // A controller can drive several scroll views at once, so look at all of
+    // them rather than `controller.position`, which throws in that case.
+    for (final position in controller.positions) {
+      switch (position.userScrollDirection) {
+        case ScrollDirection.reverse:
+          _hide();
+          return;
+        case ScrollDirection.forward:
+          _show();
+          return;
+        case ScrollDirection.idle:
+          break;
       }
-    } else if (widget.scrollController?.position.userScrollDirection ==
-        ScrollDirection.reverse) {
-      if ((_sliderController.isCompleted || !_sliderController.isAnimating)) {
-        _sliderController.forward();
-      }
+    }
+  }
+
+  void _hide() {
+    final status = _sliderController.status;
+    if (status != AnimationStatus.forward &&
+        status != AnimationStatus.completed) {
+      _sliderController.forward();
+    }
+  }
+
+  void _show() {
+    final status = _sliderController.status;
+    if (status != AnimationStatus.reverse &&
+        status != AnimationStatus.dismissed) {
+      _sliderController.reverse();
     }
   }
 
