@@ -2,77 +2,78 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// The measurements of the bar's shape, shared by the painter and the widget
-/// so the icons and the dot always line up.
+/// The measurements of a bar of a given [width] and [height], shared by the
+/// painter and the widget so the icons, the dot and the notch line up.
 @immutable
 class NavGeometry {
   const NavGeometry({
-    required this.itemCount,
+    required this.width,
     required this.height,
+    required this.itemCount,
     required this.borderRadius,
     required this.indicatorSize,
   });
 
-  final int itemCount;
+  final double width;
   final double height;
+  final int itemCount;
   final double borderRadius;
   final double indicatorSize;
 
-  /// Corners can't be rounder than half the bar's height.
-  double get cornerRadius => math.min(borderRadius, height / 2);
-
-  /// Half the width of the notch. Sized from the dot so they fit together.
-  double get notchHalfWidth => indicatorSize * 2 + 12;
-
-  /// How deep the notch dips. Deep enough to hold the dot, shallow enough to
-  /// leave room for the icons below it.
+  /// How deep the notch dips: deep enough to hold the dot with a gap below
+  /// it, and never more than half the bar.
   double get notchDepth =>
       math.min(math.max(height * 0.24, indicatorSize * 2 + 4), height / 2);
 
-  /// Space kept free at each end of a bar [width] wide.
+  /// Half the width of the notch. Sized from the dot so they fit together.
+  double get notchHalfWidth => math.min(indicatorSize * 2 + 12, width / 2);
+
+  /// The radius of all four corners.
+  ///
+  /// The notch around the first and last item has to fit between the
+  /// corners, so on a bar too narrow for both the corners get smaller. They
+  /// all shrink together so the bar stays symmetric.
+  double get cornerRadius => math.max(
+        0,
+        math.min(
+          math.min(borderRadius, height / 2),
+          width / 2 - notchHalfWidth,
+        ),
+      );
+
+  /// Space kept free at each end before the first and after the last item.
   ///
   /// Items are spread evenly, so with many items the first and last sit close
-  /// to the bar's ends and their notch would run into the rounded corners.
-  /// Moving the items in by just enough to clear the corners keeps both the
-  /// notch and the corners the same shape wherever the dot is.
-  double sideInset(double width) {
+  /// to the bar's ends and their notch would run into the corners. Moving the
+  /// items in by just enough keeps both the notch and the corners the same
+  /// shape wherever the dot is.
+  double get sideInset {
     if (itemCount < 2) return 0;
     final needed = cornerRadius + notchHalfWidth;
     final firstCenter = width / (2 * itemCount);
     if (firstCenter >= needed) return 0;
-    // Solve inset + (width - 2 * inset) / (2 * itemCount) == needed.
-    final inset = (needed - firstCenter) / (1 - 1 / itemCount);
-    // Never take more than a quarter of the bar, however narrow it is.
-    return math.min(inset, width / 4);
+    // Solve inset + (width - 2 * inset) / (2 * itemCount) == needed. The
+    // corner radius guarantees width >= 2 * needed, so the result leaves the
+    // last item just as far from the other end.
+    return (needed - firstCenter) / (1 - 1 / itemCount);
   }
 
   /// The x of the center of item [index], which may be fractional.
-  double itemCenter(double width, double index) {
-    final inset = sideInset(width);
-    final itemWidth = (width - 2 * inset) / itemCount;
-    return inset + (index + 0.5) * itemWidth;
+  double itemCenter(double index) {
+    final inset = sideInset;
+    return inset + (index + 0.5) * (width - 2 * inset) / itemCount;
   }
 
   /// The bar's outline, left to right, with the notch centered on [notchX].
-  Path outline(Size size, double notchX) {
-    final width = size.width;
-    final height = size.height;
+  Path outline(double notchX) {
     final radius = cornerRadius;
     final half = notchHalfWidth;
     final depth = notchDepth;
 
-    final notchStart = notchX - half;
-    final notchEnd = notchX + half;
-
-    // The side inset normally keeps the notch clear of the corners. On a bar
-    // too narrow for that, let the corner give way rather than overlap.
-    final topLeft = notchStart.clamp(0.0, radius);
-    final topRight = (width - notchEnd).clamp(0.0, radius);
-
     return Path()
-      ..moveTo(0, topLeft)
-      ..quadraticBezierTo(0, 0, topLeft, 0)
-      ..lineTo(notchStart, 0)
+      ..moveTo(0, radius)
+      ..quadraticBezierTo(0, 0, radius, 0)
+      ..lineTo(notchX - half, 0)
       ..cubicTo(
         notchX - half * 0.5,
         0,
@@ -86,11 +87,11 @@ class NavGeometry {
         depth,
         notchX + half * 0.5,
         0,
-        notchEnd,
+        notchX + half,
         0,
       )
-      ..lineTo(width - topRight, 0)
-      ..quadraticBezierTo(width, 0, width, topRight)
+      ..lineTo(width - radius, 0)
+      ..quadraticBezierTo(width, 0, width, radius)
       ..lineTo(width, height - radius)
       ..quadraticBezierTo(width, height, width - radius, height)
       ..lineTo(radius, height)
@@ -101,14 +102,15 @@ class NavGeometry {
   @override
   bool operator ==(Object other) =>
       other is NavGeometry &&
-      other.itemCount == itemCount &&
+      other.width == width &&
       other.height == height &&
+      other.itemCount == itemCount &&
       other.borderRadius == borderRadius &&
       other.indicatorSize == indicatorSize;
 
   @override
   int get hashCode =>
-      Object.hash(itemCount, height, borderRadius, indicatorSize);
+      Object.hash(width, height, itemCount, borderRadius, indicatorSize);
 }
 
 /// Paints the bar's background with a notch around the dot indicator.
@@ -139,8 +141,9 @@ class CurvedNavPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final width = size.width;
     final geometry = NavGeometry(
-      itemCount: itemsLength,
+      width: width,
       height: size.height,
+      itemCount: itemsLength,
       borderRadius: borderRadius,
       indicatorSize: indicatorSize,
     );
@@ -148,9 +151,9 @@ class CurvedNavPainter extends CustomPainter {
     // Keep overshooting curves from pushing the dot past the first and last
     // item.
     final index = position.value.clamp(0.0, itemsLength - 1.0);
-    final dotX = geometry.itemCenter(width, index);
+    final dotX = geometry.itemCenter(index);
 
-    var path = geometry.outline(size, dotX);
+    var path = geometry.outline(dotX);
     var dot = Offset(dotX, indicatorSize);
 
     // The shape is laid out left to right. Right-to-left apps put the first

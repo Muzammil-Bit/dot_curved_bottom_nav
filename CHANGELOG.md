@@ -18,3 +18,7 @@
 * Hide on scroll works with a controller shared by several scroll views, follows quick changes of direction, and brings the bar back when it is turned off.
 * Moving the dot now repaints only the bar's background instead of rebuilding the whole bar on every frame.
 * Fixed a spike at the corner when the dot is on the first or last item. The notch is now centered on the dot and keeps the same shape everywhere. With many items, the first and last are moved in slightly so their notch clears the rounded corners.
+* Icons are now centered in the space below the notch, and each item's tap area covers the bar's full height. The space at either end of the bar taps the nearest item.
+* A new `animationDuration` now also applies to a move or hide already under way.
+* `indicatorSize` must be positive and small enough for the dot to fit its notch (its diameter plus 4 must fit in half the bar's height). Larger values are rejected in debug builds.
+* On a bar too narrow for both the notch and full corners, all four corners shrink evenly.

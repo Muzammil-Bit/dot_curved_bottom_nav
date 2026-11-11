@@ -1,6 +1,7 @@
 import 'package:dot_curved_bottom_nav/dot_curved_bottom_nav.dart';
 import 'package:dot_curved_bottom_nav/src/curved_nav_painter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _icons = [
@@ -101,7 +102,7 @@ Widget _scrollingApp({
               child: ListView.builder(
                 key: ValueKey('list $v'),
                 controller: controller,
-                itemCount: 100,
+                itemCount: 1000,
                 itemBuilder: (_, i) => SizedBox(height: 50, child: Text('$i')),
               ),
             ),
@@ -169,6 +170,44 @@ void main() {
       await tester.pumpAndSettle();
       _expectDotUnder(tester, Icons.favorite);
     });
+
+    testWidgets('a new duration applies to a move already under way',
+        (tester) async {
+      Widget build(int index, Duration duration) => MaterialApp(
+            home: Scaffold(
+              bottomNavigationBar: DotCurvedBottomNav(
+                selectedIndex: index,
+                animationDuration: duration,
+                items: _items(4),
+              ),
+            ),
+          );
+
+      await tester.pumpWidget(build(0, const Duration(seconds: 2)));
+      await tester.pumpWidget(build(3, const Duration(seconds: 2)));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // With the original 2 seconds the dot would still be far from the end.
+      await tester.pumpWidget(build(3, const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      _expectDotUnder(tester, Icons.person);
+    });
+
+    test('rejects a dot too large for the bar', () {
+      expect(
+        () => DotCurvedBottomNav(
+          height: 75,
+          indicatorSize: 20,
+          items: _items(3),
+        ),
+        throwsAssertionError,
+      );
+      expect(
+        () => DotCurvedBottomNav(indicatorSize: 0, items: _items(3)),
+        throwsAssertionError,
+      );
+    });
   });
 
   group('hide on scroll', () {
@@ -220,6 +259,43 @@ void main() {
       expect(_barTop(tester), greaterThan(shown));
     });
 
+    testWidgets('follows the list being dragged, not one still coasting',
+        (tester) async {
+      await tester.pumpWidget(
+        _scrollingApp(controller: controller, scrollViews: 2),
+      );
+      final shown = _barTop(tester);
+
+      // Fling the first list so it keeps coasting downwards.
+      await tester.fling(
+        find.byKey(const ValueKey('list 0')),
+        const Offset(0, -200),
+        8000,
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_barTop(tester), greaterThan(shown));
+
+      // While it coasts, scroll the second list down a little, then back up.
+      final second = find.byKey(const ValueKey('list 1'));
+      await tester.drag(second, const Offset(0, -150));
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.drag(second, const Offset(0, 60));
+      // The bar takes 600ms to come back by default.
+      for (var frame = 0; frame < 45; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      // The first list must still be coasting for this to prove anything.
+      final first = controller.positions.first;
+      final before = first.pixels;
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(first.pixels, isNot(before));
+      expect(_barTop(tester), shown);
+      await tester.pumpAndSettle();
+      expect(_barTop(tester), shown);
+    });
+
     testWidgets('comes back when hiding is turned off', (tester) async {
       await tester.pumpWidget(_scrollingApp(controller: controller));
       final shown = _barTop(tester);
@@ -257,6 +333,59 @@ void main() {
       }
     });
 
+    for (final textDirection in TextDirection.values) {
+      testWidgets(
+          'taps beside the first and last item reach them '
+          '(${textDirection.name})', (tester) async {
+        final taps = <int>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Directionality(
+              textDirection: textDirection,
+              child: Scaffold(
+                bottomNavigationBar: DotCurvedBottomNav(
+                  margin: EdgeInsets.zero,
+                  onTap: taps.add,
+                  items: _items(5),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final bar = tester.getRect(find.byType(DotCurvedBottomNav));
+        final iconY = tester.getCenter(find.byIcon(Icons.home)).dy;
+        await tester.tapAt(Offset(bar.left + 2, iconY));
+        await tester.tapAt(Offset(bar.right - 2, iconY));
+
+        expect(
+          taps,
+          textDirection == TextDirection.ltr ? [0, 4] : [4, 0],
+        );
+      });
+    }
+
+    testWidgets('keeps the icons below the notch', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: DotCurvedBottomNav(
+              height: 60,
+              indicatorSize: 10,
+              margin: EdgeInsets.zero,
+              items: _items(3),
+            ),
+          ),
+        ),
+      );
+
+      final bar = tester.getRect(find.byType(DotCurvedBottomNav));
+      final icon = tester.getRect(find.byIcon(Icons.home));
+      // The notch is 24 deep for a dot of radius 10.
+      expect(icon.top, greaterThanOrEqualTo(bar.top + 24));
+      expect(icon.bottom, lessThanOrEqualTo(bar.bottom));
+    });
+
     testWidgets('stays above the bottom safe area', (tester) async {
       tester.view.padding = const FakeViewPadding(bottom: 34 * 3);
       addTearDown(tester.view.resetPadding);
@@ -285,24 +414,46 @@ void main() {
   });
 
   group('performance', () {
-    testWidgets('moving the dot repaints without rebuilding the bar',
+    testWidgets('moving the dot repaints without rebuilding anything',
         (tester) async {
       await tester.pumpWidget(const _Host());
+      await tester.tap(find.byIcon(Icons.person));
+      // The tap's frame rebuilds the host and the bar once with the new index.
+      await tester.pump();
 
-      var rebuilds = 0;
-      debugOnRebuildDirtyWidget = (element, _) {
-        if (element.widget is DotCurvedBottomNav) rebuilds++;
-      };
+      final rebuilt = <Widget>[];
+      debugOnRebuildDirtyWidget = (element, _) => rebuilt.add(element.widget);
       addTearDown(() => debugOnRebuildDirtyWidget = null);
 
-      await tester.tap(find.byIcon(Icons.person));
-      // About 20 frames at 60 fps for the 300ms animation.
+      // About 20 frames at 60 fps for the rest of the 300ms animation.
       for (var frame = 0; frame < 20; frame++) {
         await tester.pump(const Duration(milliseconds: 16));
       }
 
-      // Once, because the host passes the new selectedIndex down.
-      expect(rebuilds, 1);
+      expect(rebuilt, isEmpty);
+      _expectDotUnder(tester, Icons.person);
+    });
+
+    testWidgets('moving the dot does not lay anything out', (tester) async {
+      await tester.pumpWidget(const _Host());
+      await tester.tap(find.byIcon(Icons.person));
+      await tester.pump();
+
+      // With this flag on, every request for layout is logged.
+      final layoutRequests = <String?>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) => layoutRequests.add(message);
+      debugPrintMarkNeedsLayoutStacks = true;
+      try {
+        for (var frame = 0; frame < 20; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+      } finally {
+        debugPrintMarkNeedsLayoutStacks = false;
+        debugPrint = originalDebugPrint;
+      }
+
+      expect(layoutRequests, isEmpty);
     });
 
     test('the painter repaints only when its appearance changes', () {

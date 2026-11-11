@@ -27,7 +27,8 @@ class DotCurvedBottomNav extends StatefulWidget {
   /// The height of the bar, not counting [margin]. At most 75.
   final double height;
 
-  /// The radius of the dot.
+  /// The radius of the dot. Its diameter plus 4 must fit in the top half of
+  /// the bar, so at most 16.75 at the maximum [height] of 75.
   final double indicatorSize;
 
   /// The index of the selected item.
@@ -77,6 +78,12 @@ class DotCurvedBottomNav extends StatefulWidget {
         assert(hideOnScroll ? scrollController != null : true,
             "You need to provide [scrollController] parameter to enable hide on scroll"),
         assert(borderRadius >= 0 && borderRadius <= 30),
+        assert(indicatorSize > 0, 'indicatorSize must be positive'),
+        assert(
+          indicatorSize * 2 + 4 <= height / 2,
+          'indicatorSize is too large for this height: the dot and the gap '
+          'below it must fit in the top half of the bar',
+        ),
         super(key: key);
 
   @override
@@ -106,6 +113,9 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   /// The index the dot is at or is moving to.
   late int _targetIndex;
 
+  /// The scroll direction last seen for each scroll view on the controller.
+  final Expando<ScrollDirection> _lastDirections = Expando();
+
   @override
   void initState() {
     super.initState();
@@ -125,7 +135,7 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     }
 
     if (oldWidget.animationDuration != widget.animationDuration) {
-      _sliderController.duration = widget.animationDuration;
+      _retime();
     }
 
     // The scroll listener ignores scrolling once hiding is turned off, so
@@ -181,36 +191,19 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
                     ),
                   ),
                 ),
-                // Same side inset as the painter, so each icon stays centered
-                // under its notch.
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: widget.height * 0.4,
+                // The icons fill the space below the notch. They share the
+                // painter's geometry so each one stays centered under the dot.
+                Positioned.fill(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final inset = NavGeometry(
-                        itemCount: widget.items.length,
+                      final geometry = NavGeometry(
+                        width: constraints.maxWidth,
                         height: widget.height,
+                        itemCount: widget.items.length,
                         borderRadius: widget.borderRadius,
                         indicatorSize: widget.indicatorSize,
-                      ).sideInset(constraints.maxWidth);
-                      return Padding(
-                        padding: EdgeInsets.symmetric(horizontal: inset),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            for (int i = 0; i < widget.items.length; i++)
-                              Expanded(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onTap: () => _buttonTap(i),
-                                  child: widget.items[i],
-                                ),
-                              ),
-                          ],
-                        ),
                       );
+                      return _buildItems(geometry);
                     },
                   ),
                 ),
@@ -222,22 +215,70 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     );
   }
 
+  Widget _buildItems(NavGeometry geometry) {
+    final inset = geometry.sideInset;
+    final last = widget.items.length - 1;
+
+    Widget item(int index, Widget child) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => _buttonTap(index),
+          child: child,
+        );
+
+    return Padding(
+      padding: EdgeInsets.only(top: geometry.notchDepth),
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: inset),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i <= last; i++)
+                  Expanded(child: item(i, Center(child: widget.items[i]))),
+              ],
+            ),
+          ),
+          // The space kept free at each end still belongs to the nearest item,
+          // so a tap there isn't lost.
+          if (inset > 0) ...[
+            PositionedDirectional(
+              start: 0,
+              top: 0,
+              bottom: 0,
+              width: inset,
+              child: item(0, const SizedBox.expand()),
+            ),
+            PositionedDirectional(
+              end: 0,
+              top: 0,
+              bottom: 0,
+              width: inset,
+              child: item(last, const SizedBox.expand()),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _scrollListener() {
     final controller = widget.scrollController;
-    if (!widget.hideOnScroll || controller == null || !controller.hasClients) {
-      return;
-    }
+    if (!widget.hideOnScroll || controller == null) return;
 
-    // A controller can drive several scroll views at once, so look at all of
-    // them rather than `controller.position`, which throws in that case.
+    // A controller can drive several scroll views at once, and one can keep
+    // coasting after a fling while the user drags another. React to the view
+    // whose direction just changed rather than to whichever comes first, the
+    // same way a UserScrollNotification would.
     for (final position in controller.positions) {
-      switch (position.userScrollDirection) {
+      final direction = position.userScrollDirection;
+      if (_lastDirections[position] == direction) continue;
+      _lastDirections[position] = direction;
+      switch (direction) {
         case ScrollDirection.reverse:
           _hide();
-          return;
         case ScrollDirection.forward:
           _show();
-          return;
         case ScrollDirection.idle:
           break;
       }
@@ -263,6 +304,32 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
   void _buttonTap(int index) {
     widget.onTap?.call(index);
     _moveTo(index);
+  }
+
+  /// Applies a new [DotCurvedBottomNav.animationDuration] to animations that
+  /// are already running, so the rest of the motion takes the new duration.
+  void _retime() {
+    final duration = widget.animationDuration;
+    if (_animationController.isAnimating) {
+      _animationController.animateTo(
+        _targetIndex.toDouble(),
+        duration: duration,
+        curve: widget.animationCurve,
+      );
+    }
+
+    _sliderController.duration = duration;
+    // forward() and reverse() continue from the current value and scale the
+    // new duration to the distance left.
+    switch (_sliderController.status) {
+      case AnimationStatus.forward:
+        _sliderController.forward();
+      case AnimationStatus.reverse:
+        _sliderController.reverse();
+      case AnimationStatus.completed:
+      case AnimationStatus.dismissed:
+        break;
+    }
   }
 
   void _moveTo(int index) {
