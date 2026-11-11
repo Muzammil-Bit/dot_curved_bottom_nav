@@ -27,3 +27,6 @@ migrate_working_dir/
 **/doc/api/
 .dart_tool/
 build/
+
+# Diff images written by failing golden tests
+test/failures/
