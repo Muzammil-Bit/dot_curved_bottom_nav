@@ -582,4 +582,99 @@ void main() {
       expect(painter(color: Colors.white).shouldRepaint(painter()), isTrue);
     });
   });
+
+  group('tap feedback', () {
+    double scaleOf(WidgetTester tester, IconData icon) {
+      return tester
+          .widget<ScaleTransition>(
+            find.ancestor(
+              of: find.byIcon(icon),
+              matching: find.byType(ScaleTransition),
+            ),
+          )
+          .scale
+          .value;
+    }
+
+    testWidgets('an item shrinks while pressed and springs back',
+        (tester) async {
+      await tester.pumpWidget(const _Host());
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.search)),
+      );
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.search), closeTo(0.85, 0.001));
+      expect(scaleOf(tester, Icons.home), 1);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.search), 1);
+    });
+
+    testWidgets('pressing beside an icon presses its item', (tester) async {
+      await tester.pumpWidget(const _Host());
+
+      // The painted bar, without the margin around it.
+      final barTop = _barTop(tester);
+      final gesture = await tester.startGesture(
+        Offset(tester.getCenter(find.byIcon(Icons.search)).dx, barTop + 10),
+      );
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.search), closeTo(0.85, 0.001));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a quick tap still shows the press', (tester) async {
+      await tester.pumpWidget(const _Host());
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.search)),
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 16));
+
+      expect(scaleOf(tester, Icons.search), lessThan(0.95));
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.search), 1);
+    });
+
+    testWidgets('pressing the space at the end presses the nearest item',
+        (tester) async {
+      await tester.pumpWidget(_phoneBar(onTap: (_) {}));
+
+      final bar = tester.getRect(find.byType(DotCurvedBottomNav));
+      final gesture = await tester.startGesture(
+        Offset(bar.right - 2, bar.center.dy),
+      );
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.settings), closeTo(0.85, 0.001));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a pressedScale of 1 turns the effect off', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: DotCurvedBottomNav(
+              pressedScale: 1,
+              items: _items(3),
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.search)),
+      );
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, Icons.search), 1);
+      await gesture.up();
+    });
+  });
 }

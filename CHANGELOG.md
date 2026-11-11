@@ -22,3 +22,4 @@
 * A new `animationDuration` now also applies to a move or hide already under way.
 * `indicatorSize` must be positive and small enough for the dot to fit its notch (its diameter plus 4 must fit in half the bar's height). Larger values are rejected in debug builds.
 * Every item is at least 40 wide. When the bar is too narrow for full corners as well, all four corners shrink evenly. A bar too narrow for its items reports how wide it needs to be in debug builds.
+* Items shrink slightly while pressed and spring back with a small bounce when released. Set the new `pressedScale` to 1 to turn this off.

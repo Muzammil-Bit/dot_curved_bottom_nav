@@ -57,6 +57,10 @@ class DotCurvedBottomNav extends StatefulWidget {
   /// when they scroll up. Requires [scrollController].
   final bool hideOnScroll;
 
+  /// How small an item shrinks while it is pressed, as a fraction of its
+  /// size. It springs back when released. Use 1 to turn the effect off.
+  final double pressedScale;
+
   DotCurvedBottomNav({
     Key? key,
     required this.items,
@@ -72,6 +76,7 @@ class DotCurvedBottomNav extends StatefulWidget {
     this.onTap,
     this.borderRadius = 25,
     this.margin = const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+    this.pressedScale = 0.85,
   })  : assert(items.isNotEmpty),
         assert(0 <= selectedIndex && selectedIndex < items.length),
         assert(0 <= height && height <= 75.0),
@@ -79,6 +84,7 @@ class DotCurvedBottomNav extends StatefulWidget {
             "You need to provide [scrollController] parameter to enable hide on scroll"),
         assert(borderRadius >= 0 && borderRadius <= 30),
         assert(indicatorSize > 0, 'indicatorSize must be positive'),
+        assert(pressedScale > 0 && pressedScale <= 1),
         assert(
           indicatorSize * 2 + 4 <= height / 2,
           'indicatorSize is too large for this height: the dot and the gap '
@@ -112,6 +118,9 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
 
   /// The index the dot is at or is moving to.
   late int _targetIndex;
+
+  /// The item under a finger right now, shown slightly shrunk.
+  int? _pressedIndex;
 
   /// The scroll direction last seen for each scroll view on the controller.
   /// Cleared whenever hiding is turned on or off, or the controller changes,
@@ -233,11 +242,33 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
     final inset = geometry.sideInset;
     final last = widget.items.length - 1;
 
-    Widget item(int index, Widget child) => GestureDetector(
+    // Presses are tracked from the moment a finger touches the item. A tap
+    // recognizer reports a quick tap's touch only when the finger lifts, which
+    // would leave no time to show it.
+    Widget item(int index, Widget child) => Listener(
           behavior: HitTestBehavior.translucent,
-          onTap: () => _buttonTap(index),
-          child: child,
+          onPointerDown: (_) => _setPressed(index),
+          onPointerUp: (_) => _setPressed(null),
+          onPointerCancel: (_) => _setPressed(null),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => _buttonTap(index),
+            child: child,
+          ),
         );
+
+    Widget icon(int index) {
+      final pressed = _pressedIndex == index;
+      return AnimatedScale(
+        scale: pressed ? widget.pressedScale : 1,
+        // Shrink quickly, then spring back with a slight bounce.
+        duration: pressed
+            ? const Duration(milliseconds: 90)
+            : const Duration(milliseconds: 260),
+        curve: pressed ? Curves.easeOut : Curves.easeOutBack,
+        child: widget.items[index],
+      );
+    }
 
     // Tap areas cover the bar's full height. Only the icons sit below the
     // notch.
@@ -256,7 +287,7 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
                     i,
                     Padding(
                       padding: iconPadding,
-                      child: Center(child: widget.items[i]),
+                      child: Center(child: icon(i)),
                     ),
                   ),
                 ),
@@ -322,6 +353,10 @@ class _DotCurvedBottomNavState extends State<DotCurvedBottomNav>
         status != AnimationStatus.dismissed) {
       _sliderController.reverse();
     }
+  }
+
+  void _setPressed(int? index) {
+    if (_pressedIndex != index) setState(() => _pressedIndex = index);
   }
 
   void _buttonTap(int index) {
